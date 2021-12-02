@@ -24,6 +24,40 @@ impl Iterator for Int32FileReader {
   }
 }
 
+struct Int32SlidingWindow {
+  values: Int32FileReader,
+  last_three: [i32; 3],
+  populated: bool,
+}
+
+impl Int32SlidingWindow {
+  fn new(path: &str) -> Int32SlidingWindow {
+    let values = Int32FileReader::new(path);
+    Int32SlidingWindow {
+      values,
+      last_three: [0,0,0],
+      populated: false,
+    }
+  }
+}
+
+impl Iterator for Int32SlidingWindow {
+  type Item = i32;
+  fn next(&mut self) -> Option<Self::Item> {
+    if self.populated {
+      self.last_three[0] = self.last_three[1];
+      self.last_three[1] = self.last_three[2];
+      self.last_three[2] = self.values.next()?;
+    } else {
+      self.last_three[0] = self.values.next()?;
+      self.last_three[1] = self.values.next()?;
+      self.last_three[2] = self.values.next()?;
+      self.populated = true;
+    }
+    Some(self.last_three[0] + self.last_three[1] + self.last_three[2])
+  }
+}
+
 #[derive(Debug)]
 struct DirectionCounts {
   increased: i32,
@@ -31,9 +65,8 @@ struct DirectionCounts {
 }
 
 
-
 pub fn day1() -> Option<()> {
-  let mut values = Int32FileReader::new("./src/day-01.txt");
+  let mut values = Int32SlidingWindow::new("./src/day-01.txt");
   let mut counter = DirectionCounts {
     increased: 0,
     decreased: 0,
@@ -42,10 +75,10 @@ pub fn day1() -> Option<()> {
   println!("{:?}", last_value);
   for value in values {
     if value > last_value {
-      println!("{:?} (increased)", value);
+      // println!("{:?} (increased)", value);
       counter.increased += 1;
     } else if value < last_value {
-      println!("{:?} (decreased)", value);
+      // println!("{:?} (decreased)", value);
       counter.decreased += 1;
     }
     last_value = value;
