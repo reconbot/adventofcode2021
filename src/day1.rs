@@ -66,6 +66,7 @@ struct DirectionCounts {
 
 
 pub fn day1() -> Option<()> {
+  // let mut values = Int32FileReader::new("./src/day-01.txt");
   let mut values = Int32SlidingWindow::new("./src/day-01.txt");
   let mut counter = DirectionCounts {
     increased: 0,
