@@ -1,5 +1,25 @@
 use std::fs::File;
 use std::io::{self, BufRead, BufReader};
+use std::num::ParseIntError;
+
+
+#[derive(Debug)]
+pub enum DayTwoError {
+  IoError(io::Error),
+  ParseIntError(ParseIntError),
+}
+
+impl From<io::Error> for DayTwoError {
+  fn from(error: io::Error) -> Self {
+    DayTwoError::IoError(error)
+  }
+}
+
+impl From<ParseIntError> for DayTwoError {
+  fn from(error: ParseIntError) -> Self {
+    DayTwoError::ParseIntError(error)
+  }
+}
 
 #[derive(Debug)]
 enum Command {
@@ -23,12 +43,18 @@ impl CommandFileReader {
 }
 
 impl Iterator for CommandFileReader {
-  type Item = Command;
+  type Item = Result<Command, DayTwoError>;
   fn next(&mut self) -> Option<Self::Item> {
-    let line = self.lines.next()?.unwrap();
+    let line = match self.lines.next()? {
+      Ok(line) => line,
+      Err(err) => return Some(Err(err.into())),
+    };
     let mut parts = line.split(" ");
     let cmd_name = parts.next()?;
-    let value = parts.next()?.parse::<i32>().unwrap();
+    let value = match parts.next()?.parse::<i32>() {
+      Ok(val)=> val,
+      Err(err) => return Some(Err(err.into())),
+    };
     let cmd = match cmd_name {
       "forward" => Command::Forward(value),
       "down" => Command::Down(value),
@@ -36,16 +62,16 @@ impl Iterator for CommandFileReader {
       _ => panic!("Unknown command {}", cmd_name),
     };
 
-    Some(cmd)
+    Some(Ok(cmd))
   }
 }
 
-pub fn day2() -> Option<()> {
+pub fn main() -> Result<(), DayTwoError> {
   let mut depth = 0;
   let mut horizontal= 0;
   let mut aim = 0;
   for cmd in CommandFileReader::new("./src/day-02.txt") {
-    match cmd {
+    match cmd? {
       Command::Up(value) => aim -= value,
       Command::Down(value) => aim += value,
       Command::Forward(value) => {
@@ -55,5 +81,5 @@ pub fn day2() -> Option<()> {
     };
   }
   println!("Depth {}, Distance {}, Product {}", depth, horizontal, depth * horizontal);
-  Some(())
+  Ok(())
 }
